@@ -1,0 +1,401 @@
+from google.colab import drive
+drive.mount('/content/drive')
+
+#importing the essential libraries
+import tensorflow as tf
+import numpy as np
+import matplotlib.pyplot as plt
+from tensorflow.keras.layers import *
+from tensorflow.keras.models import *
+from tensorflow.keras.preprocessing import image
+
+train_set='/content/drive/MyDrive/archive/train'
+val_set='/content/drive/MyDrive/archive/val'
+test_set='/content/drive/MyDrive/archive/test'
+
+
+# Define the mean and standard deviation values for normalization using ImageNet values
+mean = np.array([0.485, 0.456, 0.406])
+std = np.array([0.229, 0.224, 0.225])
+
+# Define a custom preprocessing function to normalize the image
+def preprocess_image(img):
+    img = img / 255.0
+    img = (img - mean) / std
+    return img
+
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+import matplotlib.pyplot as plt
+import numpy as np
+
+# ... (Your existing code) ...
+
+# Define your data augmentation settings
+train_datagen = ImageDataGenerator(
+    rescale=1./255,
+    shear_range=0.2,
+    zoom_range=0.2,
+    horizontal_flip=True
+)
+
+# Assuming your training data is in a directory named 'train_data'
+train_data_dir = '/content/drive/MyDrive/archive/train' # Update with your training data directory
+train_augmented = train_datagen.flow_from_directory(
+    train_data_dir,
+    target_size=(224, 224), # Adjust target size as needed
+    batch_size=32, # Adjust batch size as needed
+    class_mode='categorical' # Choose 'categorical' or 'binary' based on your problem
+)
+
+def show_images(gen):
+    g_dict = gen.class_indices        # defines dictionary {'class': index}
+    classes = list(g_dict.keys())     # defines list of dictionary's kays (classes), classes names : string
+    images, labels = next(gen)        # get a batch size samples from the generator
+    length = len(labels)
+    sample = min(length, 20)
+    plt.figure(figsize= (15, 17))
+    for i in range(sample):
+        plt.subplot(5, 5, i + 1)
+        image = images[i]             # Removed the extra division by 255
+        plt.imshow(image)
+        index = np.argmax(labels[i])
+        class_name = classes[index]
+        plt.title(class_name, color= 'blue', fontsize= 11 )
+        plt.axis('off')
+    plt.show()
+
+show_images(train_augmented)
+
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+import matplotlib.pyplot as plt
+import numpy as np
+
+# Define ImageDataGenerator (only rescaling, no augmentation)
+datagen = ImageDataGenerator(rescale=1./255)
+
+# Training data directory
+train_data_dir = '/content/drive/MyDrive/archive/train'  # Update with actual path
+
+# Load images with shuffle enabled
+image_gen = datagen.flow_from_directory(
+    train_data_dir,
+    target_size=(224, 224),
+    batch_size=4,  # Number of images to display
+    class_mode='categorical',
+    shuffle=True  # Ensures randomness
+)
+
+def show_original_vs_preprocessed(image_gen, num_images=4):
+    """Displays shuffled original images alongside their preprocessed versions."""
+
+    images, labels = next(image_gen)  # Fetch shuffled images
+    class_indices = image_gen.class_indices  # Get class indices
+    classes = list(class_indices.keys())  # Get class names
+
+    fig, axes = plt.subplots(num_images, 2, figsize=(6, num_images * 3))  # Compact figure size
+    fig.suptitle("Original vs Preprocessed Images", fontsize=14)
+
+    for i in range(num_images):
+        orig_image = images[i]  # Original (already rescaled)
+        class_name = classes[np.argmax(labels[i])]
+
+        # Preprocessed image (same as original since no augmentation)
+        preprocessed_image = orig_image.copy()
+
+        # Display Original Image
+        axes[i, 0].imshow(orig_image)
+        axes[i, 0].set_title(f"{class_name}", fontsize=10, color="black")
+        axes[i, 0].axis('off')
+
+        # Display Preprocessed Image
+        axes[i, 1].imshow(preprocessed_image)
+        axes[i, 1].set_title("Preprocessed", fontsize=10, color="blue")
+        axes[i, 1].axis('off')
+
+    plt.subplots_adjust(hspace=0.1, wspace=0.1)  # Reduce spacing between images
+    plt.show()
+
+# Display shuffled original vs preprocessed images
+show_original_vs_preprocessed(image_gen, num_images=4)
+
+import os
+import matplotlib.pyplot as plt
+from collections import defaultdict
+
+# Path to the dataset
+dataset_path = '/content/drive/MyDrive/archive'
+
+# Recursive function to count images in directories and subdirectories
+def count_images_recursively(base_path):
+    class_counts = defaultdict(int)
+    for root, dirs, files in os.walk(base_path):
+        # Count images in the current directory
+        class_name = os.path.relpath(root, base_path)  # Get relative path for class/subclass name
+        image_count = sum(1 for file in files if file.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.gif')))
+        if image_count > 0:
+            class_counts[class_name] += image_count
+    return class_counts
+
+# Get class and subclass counts
+class_counts = count_images_recursively(dataset_path)
+
+# Prepare data for the pie chart
+labels = list(class_counts.keys())
+sizes = list(class_counts.values())
+
+# Define a custom palette with girly, distinct colors
+colors = [
+    '#FFB3BA',  # Soft pink
+    '#FFDFBA',  # Peach
+    '#FFFFBA',  # Light yellow
+    '#BAFFC9',  # Mint green
+    '#BAE1FF',  # Light blue
+    '#FF99C8',  # Bubblegum pink
+    '#FFC3A0',  # Coral
+    '#F4C2C2',  # Rosy pink
+    '#D5AAFF',  # Lavender purple
+    '#A8E6CF',  # Pastel green
+    '#FFD3B6',  # Soft apricot
+    '#85E3FF'   # Sky blue
+]
+
+# Plot the pie chart
+plt.figure(figsize=(12, 8))
+wedges, texts, autotexts = plt.pie(
+    sizes, labels=labels, autopct='%1.1f%%', startangle=140, colors=colors[:len(labels)],
+    textprops={'fontsize': 12}, pctdistance=0.5
+)
+
+# Style adjustments
+plt.setp(autotexts, size=10)
+plt.title('Class and Subclass Distribution', fontsize=16, pad=20)
+plt.gca().set_aspect('equal')  # Equal aspect ratio ensures the pie is circular.
+
+# Add a legend (optional)
+plt.legend(wedges, labels, title="Classes", loc="best", bbox_to_anchor=(1, 0, 0.5, 1))
+
+# Save as a high-resolution image for your paper
+plt.savefig('girly_class_distribution_piechart.png', dpi=300, bbox_inches='tight')
+
+# Show the pie chart
+plt.show()
+
+train_datagen = image.ImageDataGenerator(
+    rotation_range=15,
+    shear_range=0.2,
+    zoom_range=0.2,
+    horizontal_flip=True,
+    width_shift_range=0.1,
+    height_shift_range=0.1
+
+)
+validation_datagen= image.ImageDataGenerator(
+    #rotation_range=15,
+    #shear_range=0.2,
+    #zoom_range=0.2,
+    #horizontal_flip=True,
+    #width_shift_range=0.1,
+    #height_shift_range=0.1
+                                            )
+
+test_datagen= image.ImageDataGenerator(
+    #rotation_range=15,
+    #shear_range=0.2,
+    #zoom_range=0.2,
+    #horizontal_flip=True,
+    #width_shift_range=0.1,
+    #height_shift_range=0.1
+                                      )
+
+# image addressing
+train_generator = train_datagen.flow_from_directory(
+    train_set,
+    target_size = (224,224),
+    batch_size = 16,
+    class_mode = 'categorical')
+validation_generator = validation_datagen.flow_from_directory(
+    val_set,
+    target_size = (224,224),
+    batch_size = 16,
+    shuffle=True,
+    class_mode = 'categorical')
+test_generator = test_datagen.flow_from_directory(
+    test_set,
+    target_size = (224,224),
+    batch_size = 16,
+    class_mode = 'categorical')
+
+train_generator.class_indices
+
+from tensorflow.keras import regularizers
+from keras.regularizers import l2
+
+base_model = tf.keras.applications.EfficientNetB2(weights='imagenet', input_shape=(224,224,3), include_top=False)
+
+for layer in base_model.layers:
+    layer.trainable=False
+model = Sequential()
+model.add(base_model)
+#model.add(Conv2D(64,kernel_size=(3,3),activation='relu'))
+model.add(GaussianNoise(0.35))
+model.add(GlobalAveragePooling2D())
+model.add(Dense(256,activation='relu'))
+model.add(BatchNormalization())
+model.add(GaussianNoise(0.35))
+model.add(Dropout(0.2))
+model.add(Dense(4, activation='softmax'))
+model.summary()
+
+model.compile(optimizer='adam',loss='categorical_crossentropy', metrics=['accuracy','Precision','Recall','AUC'])
+
+import os
+from keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
+
+checkpoint_path = 'model/Model.keras'
+checkpoint_dir = os.path.dirname(checkpoint_path)
+
+# Define the ReduceLROnPlateau & ModelCheckpoint & Early stopping callbacks
+anne = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=4, verbose=1, min_lr=1e-7)
+checkpoint = ModelCheckpoint(checkpoint_path, verbose=1, save_best_only=True)
+early_stopping = EarlyStopping(monitor='val_loss', patience=6, verbose=1, mode='min')
+
+history = model.fit(
+    train_generator,
+    steps_per_epoch=50, #steps_per_epoch= training_images/batch_size= 3200/32<=200
+    epochs = 25,
+    callbacks=[anne,
+               checkpoint, early_stopping],
+
+    validation_data = validation_generator
+)
+
+model.evaluate(train_generator)
+model.evaluate(validation_generator)
+model.evaluate(test_generator)
+
+import matplotlib.pyplot as plt
+plt.figure(figsize=(8, 8))
+plt.title("Learning curve")
+plt.plot(history.history["accuracy"], label="accuracy")
+plt.plot(history.history["loss"], label="training loss")
+plt.plot(history.history["val_loss"], label="val_loss")
+plt.plot( np.argmin(history.history["val_loss"]), np.min(history.history["val_loss"]), marker="x", color="r", label="best model")
+plt.xlabel("Epochs")
+plt.ylabel("value (log scale)")
+plt.legend()
+
+from keras.models import load_model
+plt.figure(figsize=(8, 8))
+plt.title("Learning curve")
+plt.plot(history.history["Precision"], label="accuracy")
+plt.plot(history.history["val_Precision"], label="val_loss")
+plt.plot( np.argmin(history.history["val_Precision"]), np.min(history.history["val_Precision"]), marker="x", color="r", label="best model")
+plt.xlabel("Epochs")
+plt.ylabel("value (log scale)")
+plt.legend()
+
+import matplotlib.pyplot as plt
+
+plt.figure(figsize=(8, 8))
+plt.title("Learning curve")
+plt.plot(history.history["Precision"], label="precision")
+plt.plot(history.history["val_Precision"], label="val_precision")
+plt.plot(
+    np.argmin(history.history["val_Precision"]),
+    np.min(history.history["val_Precision"]),
+    marker="x",
+    color="r",
+    label="best model",
+)
+plt.xlabel("Epochs")
+plt.ylabel("Value")
+plt.legend()
+plt.show()
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+plt.figure(figsize=(8, 8))
+plt.title("Learning Curve")
+plt.plot(history.history["accuracy"], label="Training Accuracy")
+plt.plot(history.history["val_accuracy"], label="Validation Accuracy")
+plt.plot(
+    np.argmin(history.history["val_loss"]),
+    np.min(history.history["val_loss"]),
+    marker="x", color="r", label="Best Model"
+)
+plt.xlabel("Epochs")
+plt.ylabel("Accuracy/Loss")
+plt.legend()
+plt.show()
+
+from keras.preprocessing import image
+img = image.load_img('/content/drive/MyDrive/archive/test/2_polyps/test_polyps_ (1).jpg',target_size=(224,224))
+imag = image.img_to_array(img)
+imaga = np.expand_dims(imag,axis=0)
+ypred = model.predict(imaga)
+print(ypred)
+a=np.argmax(ypred,-1)
+if a==0:
+    op="Normal"
+elif a==1:
+    op="Ulcerative colitis"
+elif a==2:
+    op="Polyp"
+else:
+    op="Esophagitis"
+
+plt.imshow(img)
+print("THE UPLOADED IMAGE SEEMS TO BE: "+str(op))
+
+ts_length = len(test_generator.classes) # Changed to use the length of the classes in the test_generator
+test_batch_size = max(sorted([ts_length // n for n in range(1, ts_length + 1) if ts_length%n == 0 and ts_length/n <= 80]))
+test_steps = ts_length // test_batch_size
+
+train_score = model.evaluate(train_generator, steps= test_steps, verbose= 1) #Corrected variable name
+valid_score = model.evaluate(validation_generator, steps= test_steps, verbose= 1) #Corrected variable name
+test_score = model.evaluate(test_generator, steps= test_steps, verbose= 1) #Corrected variable name
+
+print("Train Loss: ", train_score[0])
+print("Train Accuracy: ", train_score[1])
+print('-' * 20)
+print("Validation Loss: ", valid_score[0])
+print("Validation Accuracy: ", valid_score[1])
+ts_length = len(test_generator.classes) # Changed to use the length of the classes in the test_generator
+test_batch_size = max(sorted([ts_length // n for n in range(1, ts_length + 1) if ts_length%n == 0 and ts_length/n <= 80]))
+test_steps = ts_length // test_batch_size
+
+train_score = model.evaluate(train_generator, steps= test_steps, verbose= 1) #Corrected variable name
+valid_score = model.evaluate(validation_generator, steps= test_steps, verbose= 1) #Corrected variable name
+test_score = model.evaluate(test_generator, steps= test_steps, verbose= 1) #Corrected variable name
+
+print("Train Loss: ", train_score[0])
+print("Train Accuracy: ", train_score[1])
+print('-' * 20)
+print("Validation Loss: ", valid_score[0])
+print("Validation Accuracy: ", valid_score[1])
+print('-' * 20)
+print("Test Loss: ", test_score[0])
+print("Test Accuracy: ", test_score[1])
+
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.metrics import confusion_matrix
+# Class names
+class_names = ["Normal", "Ulcerative Colitis", "Polyps", "Esophagitis"]
+
+# Compute confusion matrix
+cm = confusion_matrix(actual_labels, predicted_labels)
+
+# Create a heatmap with seaborn
+plt.figure(figsize=(8, 6))
+sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=class_names, yticklabels=class_names)
+
+# Add labels and title
+plt.title('Confusion Matrix', fontsize=16)
+plt.xlabel('Predicted Labels', fontsize=12)
+plt.ylabel('True Labels', fontsize=12)
+
+# Display the plot
+plt.show()
